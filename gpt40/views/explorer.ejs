@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BDPADrive - Explorer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <% var error = typeof error !== 'undefined' ? error : null; %>
+  <% include('partials/navbar.ejs') %>
+  <h1>Explorer</h1>
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="get" action="/explorer">
+    <label>Sort by:
+      <select name="sortBy" onchange="this.form.submit()">
+        <option value="name" <%= sortBy==='name'?'selected':'' %>>Name</option>
+        <option value="createdAt" <%= sortBy==='createdAt'?'selected':'' %>>Created</option>
+        <option value="modifiedAt" <%= sortBy==='modifiedAt'?'selected':'' %>>Modified</option>
+        <option value="size" <%= sortBy==='size'?'selected':'' %>>Size</option>
+      </select>
+    </label>
+  </form>
+  <table class="explorer-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Owner</th>
+        <th>Created</th>
+        <th>Modified</th>
+        <th>Size</th>
+        <th>Preview</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% nodes.forEach(node => { %>
+        <tr>
+          <td>
+            <% if (node.type === 'file') { %>
+              <a href="/editor/<%= node.node_id %>"><%= node.name %></a>
+            <% } else if (node.type === 'directory') { %>
+              <a href="/explorer?parent=<%= node.node_id %>"><%= node.name %></a>
+            <% } else if (node.type === 'symlink') { %>
+              <span class="symlink"><%= node.name %></span>
+            <% } %>
+          </td>
+          <td><%= node.type %></td>
+          <td><%= node.owner %></td>
+          <td><%= new Date(node.createdAt).toLocaleString() %></td>
+          <td><%= new Date(node.modifiedAt).toLocaleString() %></td>
+          <td><%= node.size || '' %></td>
+          <td>
+            <% if (node.type === 'file') { %>
+              <div class="file-preview" data-content="<%- node.text ? node.text.replace(/"/g, '&quot;') : '' %>"></div>
+            <% } else if (node.type === 'symlink') { %>
+              <span class="symlink-preview">Symlink</span>
+            <% } %>
+          </td>
+          <td>
+            <!-- Actions: Rename, Delete, Move, Tag, Change Owner, etc. -->
+            <form action="/explorer/rename" method="post" style="display:inline">
+              <input type="hidden" name="node_id" value="<%= node.node_id %>">
+              <input type="text" name="new_name" placeholder="Rename">
+              <button type="submit">Rename</button>
+            </form>
+            <form action="/explorer/delete" method="post" style="display:inline">
+              <input type="hidden" name="node_id" value="<%= node.node_id %>">
+              <button type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <h2>Create New</h2>
+  <form action="/explorer/create" method="post" class="create-form">
+    <label>Type:
+      <select name="type" id="create-type" required>
+        <option value="file">Text File</option>
+        <option value="directory">Folder</option>
+        <option value="symlink">Symlink</option>
+      </select>
+    </label>
+    <label>Name: <input type="text" name="name" required></label>
+    <div id="file-fields">
+      <label>Tags (comma separated, max 5): <input type="text" name="tags"></label>
+      <label>Text (max 10KiB): <textarea name="text" maxlength="10240"></textarea></label>
+    </div>
+    <div id="symlink-fields" style="display:none">
+      <label>Target Node ID: <input type="text" name="target_id"></label>
+    </div>
+    <button type="submit">Create</button>
+  </form>
+  <script src="/js/vendor.js"></script>
+  <script src="/js/explorer.js"></script>
+  <script>
+    // Toggle fields for file/symlink
+    document.getElementById('create-type').addEventListener('change', function() {
+      document.getElementById('file-fields').style.display = this.value === 'file' ? '' : 'none';
+      document.getElementById('symlink-fields').style.display = this.value === 'symlink' ? '' : 'none';
+    });
+  </script>
+</body>
+</html>

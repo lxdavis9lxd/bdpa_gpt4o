@@ -1,0 +1,95 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  margin: 0;
+  padding: 0;
+}
+h1 {
+  color: #2c3e50;
+}
+form {
+  background: #fff;
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  max-width: 400px;
+}
+input, button {
+  display: block;
+  width: 100%;
+  margin: 0.5em 0;
+  padding: 0.5em;
+  font-size: 1em;
+}
+a {
+  color: #2980b9;
+  text-decoration: none;
+  margin-right: 1em;
+}
+a:hover {
+  text-decoration: underline;
+}
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #222;
+  color: #fff;
+  padding: 0.5em 1em;
+}
+.navbar-logo {
+  height: 32px;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+.navbar-title {
+  font-size: 1.3em;
+  font-weight: bold;
+  margin-right: 1em;
+}
+.navbar-user {
+  margin-right: 1em;
+}
+.navbar a {
+  color: #fff;
+  margin-left: 1em;
+  text-decoration: none;
+}
+.navbar a:hover {
+  text-decoration: underline;
+}
+.explorer-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+  background: #fff;
+}
+.explorer-table th, .explorer-table td {
+  border: 1px solid #ddd;
+  padding: 0.5em;
+  text-align: left;
+}
+.explorer-table th {
+  background: #f0f0f0;
+}
+.file-preview {
+  min-width: 120px;
+  min-height: 60px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.symlink {
+  color: #888;
+  font-style: italic;
+}
+.error {
+  color: #b00;
+  background: #fee;
+  padding: 0.5em;
+  border-radius: 4px;
+  margin-bottom: 1em;
+}

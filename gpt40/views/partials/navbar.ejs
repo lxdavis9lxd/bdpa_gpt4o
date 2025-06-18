@@ -1,0 +1,16 @@
+<nav class="navbar">
+  <div class="navbar-left">
+    <img src="/images/bdpa-logo.png" alt="BDPA Logo" class="navbar-logo">
+    <span class="navbar-title">BDPADrive</span>
+  </div>
+  <div class="navbar-right">
+    <% if (user) { %>
+      <span class="navbar-user">Hello, <a href="/dashboard"><%= user.username %></a></span>
+      <a href="/explorer">Explorer</a>
+      <a href="/logout">Logout</a>
+    <% } else { %>
+      <a href="/login">Login</a>
+      <a href="/register">Sign Up</a>
+    <% } %>
+  </div>
+</nav>
