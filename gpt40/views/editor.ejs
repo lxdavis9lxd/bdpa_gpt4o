@@ -41,12 +41,14 @@
   <% } %>
   <script src="/js/editor.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <script>
-    // Live preview logic
+    // Live preview logic with sanitization
     const textarea = document.getElementById('editor-textarea');
     const preview = document.getElementById('live-preview');
     function updatePreview() {
-      preview.innerHTML = window.marked.parse(textarea.value);
+      const raw = window.marked.parse(textarea.value);
+      preview.innerHTML = DOMPurify.sanitize(raw);
     }
     textarea.addEventListener('input', updatePreview);
     updatePreview();

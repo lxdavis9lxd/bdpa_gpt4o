@@ -17,57 +17,88 @@ async function fetchUserNodes(username, apiKey, sortBy = 'name') {
   return nodes;
 }
 
+// Helper: cache nodes in session for 30s
+async function getCachedNodes(req, username, apiKey, sortBy) {
+  if (!req.session.nodeCache) req.session.nodeCache = {};
+  const cacheKey = `${username}:${sortBy}`;
+  const now = Date.now();
+  if (req.session.nodeCache[cacheKey] && now - req.session.nodeCache[cacheKey].ts < 30000) {
+    return req.session.nodeCache[cacheKey].nodes;
+  }
+  const nodes = await fetchUserNodes(username, apiKey, sortBy);
+  req.session.nodeCache[cacheKey] = { nodes, ts: now };
+  return nodes;
+}
+
 exports.getExplorer = async (req, res) => {
-  const user = req.session.user;
-  if (!user) return res.redirect('/login');
-  const error = typeof req.query.error !== 'undefined' ? req.query.error : null;
-  const parent = req.query.parent || null;
-  const q = req.query.q || '';
   try {
-    const nodes = await fetchUserNodes(user.username, process.env.BDPA_API_KEY, req.query.sortBy);
-    let currentFolder = null;
-    let folderContents = [];
-    let searchResults = [];
-    if (q) {
-      // Search by name, tag, text, type, created/modified time
-      const qLower = q.toLowerCase();
-      searchResults = nodes.filter(n =>
-        (n.name && n.name.toLowerCase().includes(qLower)) ||
-        (n.tags && n.tags.some(tag => tag.toLowerCase().includes(qLower))) ||
-        (n.text && n.text.toLowerCase().includes(qLower)) ||
-        (n.type && n.type.toLowerCase().includes(qLower)) ||
-        (n.createdAt && new Date(n.createdAt).toLocaleString().includes(qLower)) ||
-        (n.modifiedAt && new Date(n.modifiedAt).toLocaleString().includes(qLower))
-      );
-      // Sort: files by modified desc, folders/symlinks by created desc
-      searchResults.sort((a, b) => {
-        if (a.type === 'file' && b.type === 'file') return b.modifiedAt - a.modifiedAt;
-        if (a.type !== 'file' && b.type !== 'file') return b.createdAt - a.createdAt;
-        return a.type === 'file' ? -1 : 1;
-      });
-    }
-    if (parent) {
-      currentFolder = nodes.find(n => n.node_id === parent && n.type === 'directory');
-      if (currentFolder) {
-        folderContents = nodes.filter(n => currentFolder.contents.includes(n.node_id));
+    const user = req.session.user;
+    if (!user) return res.redirect('/login');
+    const error = typeof req.query.error !== 'undefined' ? req.query.error : null;
+    const parent = req.query.parent || null;
+    const q = req.query.q || '';
+    const page = parseInt(req.query.page, 10) || 1;
+    const perPage = 20;
+    try {
+      const nodes = await getCachedNodes(req, user.username, process.env.BDPA_API_KEY, req.query.sortBy);
+      let currentFolder = null;
+      let folderContents = [];
+      let searchResults = [];
+      let total = 0;
+      if (q) {
+        // Search by name, tag, text, type, created/modified time
+        const qLower = q.toLowerCase();
+        searchResults = nodes.filter(n =>
+          (n.name && n.name.toLowerCase().includes(qLower)) ||
+          (n.tags && n.tags.some(tag => tag.toLowerCase().includes(qLower))) ||
+          (n.text && n.text.toLowerCase().includes(qLower)) ||
+          (n.type && n.type.toLowerCase().includes(qLower)) ||
+          (n.createdAt && new Date(n.createdAt).toLocaleString().includes(qLower)) ||
+          (n.modifiedAt && new Date(n.modifiedAt).toLocaleString().includes(qLower))
+        );
+        // Sort: files by modified desc, folders/symlinks by created desc
+        searchResults.sort((a, b) => {
+          if (a.type === 'file' && b.type === 'file') return b.modifiedAt - a.modifiedAt;
+          if (a.type !== 'file' && b.type !== 'file') return b.createdAt - a.createdAt;
+          return a.type === 'file' ? -1 : 1;
+        });
+        total = searchResults.length;
+        searchResults = searchResults.slice((page-1)*perPage, page*perPage);
       }
-    } else {
-      // Top-level: show all nodes not inside any folder
-      folderContents = nodes.filter(n => !nodes.some(f => f.type === 'directory' && f.contents && f.contents.includes(n.node_id)));
+      if (parent) {
+        currentFolder = nodes.find(n => n.node_id === parent && n.type === 'directory');
+        if (currentFolder) {
+          folderContents = nodes.filter(n => currentFolder.contents.includes(n.node_id));
+        }
+      } else {
+        // Top-level: show all nodes not inside any folder
+        folderContents = nodes.filter(n => !nodes.some(f => f.type === 'directory' && f.contents && f.contents.includes(n.node_id)));
+      }
+      if (!q) {
+        total = folderContents.length;
+        folderContents = folderContents.slice((page-1)*perPage, page*perPage);
+      }
+      res.render('explorer', {
+        user,
+        nodes,
+        folderContents,
+        currentFolder,
+        parent,
+        sortBy: req.query.sortBy || 'name',
+        error,
+        q,
+        searchResults,
+        page,
+        perPage,
+        total
+      });
+    } catch (err) {
+      let errorMsg = 'Failed to load files.';
+      if (err.response && err.response.status === 555) errorMsg = 'Temporary API error. Please try again.';
+      res.render('explorer', { user: req.session.user, nodes: [], folderContents: [], currentFolder: null, parent: req.query.parent || null, sortBy: req.query.sortBy || 'name', error: errorMsg, q: req.query.q || '', searchResults: [], page: 1, perPage: 20, total: 0 });
     }
-    res.render('explorer', {
-      user,
-      nodes,
-      folderContents,
-      currentFolder,
-      parent,
-      sortBy: req.query.sortBy || 'name',
-      error,
-      q,
-      searchResults
-    });
   } catch (err) {
-    res.render('explorer', { user, nodes: [], folderContents: [], currentFolder: null, parent, sortBy: req.query.sortBy || 'name', error: error || 'Failed to load files.', q, searchResults: [] });
+    res.redirect('/login');
   }
 };
 
