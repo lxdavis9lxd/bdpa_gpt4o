@@ -9,7 +9,30 @@
 <body>
   <% include ./partials/navbar.ejs %>
   <h1>Dashboard</h1>
-  <p>Welcome, <%= user ? user.username : '' %>!</p>
-  <!-- Dashboard UI will go here -->
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <% if (userInfo) { %>
+    <% if (success) { %><div class="success"><%= success %></div><% } %>
+    <div><strong>Username:</strong> <%= userInfo.username %></div>
+    <div><strong>Email:</strong> <%= userInfo.email %></div>
+    <div><strong>Created:</strong> <%= new Date(userInfo.createdAt).toLocaleString() %></div>
+  <% } %>
+  <% if (usage) { %>
+    <div><strong>Storage Used:</strong> <%= usage.used %> bytes / <%= usage.quota %> bytes</div>
+  <% } %>
+  <h2>Update Email</h2>
+  <form method="post" action="/dashboard/email">
+    <input type="email" name="email" value="<%= userInfo ? userInfo.email : '' %>" required>
+    <button type="submit">Update Email</button>
+  </form>
+  <h2>Update Password</h2>
+  <form method="post" action="/dashboard/password">
+    <input type="password" name="password" placeholder="New Password" required>
+    <button type="submit">Update Password</button>
+  </form>
+  <h2>Delete Account</h2>
+  <form id="delete-account-form" method="post" action="/dashboard/delete">
+    <button type="submit" style="color:red">Delete Account</button>
+  </form>
+  <script src="/js/dashboard.js"></script>
 </body>
 </html>

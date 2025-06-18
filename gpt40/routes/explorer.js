@@ -23,4 +23,7 @@ router.post('/move', explorerController.moveNode);
 // POST /explorer/tag
 router.post('/tag', explorerController.tagNode);
 
+// POST /explorer/owner
+router.post('/owner', explorerController.ownerNode);
+
 module.exports = router;

@@ -10,6 +10,27 @@
   <% var error = typeof error !== 'undefined' ? error : null; %>
   <% include('partials/navbar.ejs') %>
   <h1>Explorer</h1>
+  <% if (currentFolder) { %>
+    <div>
+      <a href="/explorer<%= parent ? '' : '' %>">Root</a>
+      <% if (currentFolder) { %>
+        &nbsp;/&nbsp;<%= currentFolder.name %>
+        <% if (parent) { %>
+          <a href="/explorer<%= currentFolder && currentFolder.parent ? '?parent=' + currentFolder.parent : '' %>">[Up]</a>
+        <% } %>
+      <% } %>
+    </div>
+    <div class="breadcrumbs">
+      <a href="/explorer">Root</a>
+      <% let folder = currentFolder; let path = []; while (folder) { path.unshift(folder); folder = nodes.find(n => n.node_id === folder.parent && n.type === 'directory'); } %>
+      <% path.forEach(f => { %>
+        &nbsp;/&nbsp;<a href="/explorer?parent=<%= f.node_id %>"><%= f.name %></a>
+      <% }) %>
+      <% if (parent) { %>
+        &nbsp;<a href="/explorer<%= currentFolder && currentFolder.parent ? '?parent=' + currentFolder.parent : '' %>">[Up]</a>
+      <% } %>
+    </div>
+  <% } %>
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <form method="get" action="/explorer">
     <label>Sort by:
@@ -20,6 +41,9 @@
         <option value="size" <%= sortBy==='size'?'selected':'' %>>Size</option>
       </select>
     </label>
+    <% if (parent) { %>
+      <input type="hidden" name="parent" value="<%= parent %>">
+    <% } %>
   </form>
   <table class="explorer-table">
     <thead>
@@ -35,7 +59,7 @@
       </tr>
     </thead>
     <tbody>
-      <% nodes.forEach(node => { %>
+      <% (folderContents || nodes).forEach(node => { %>
         <tr>
           <td>
             <% if (node.type === 'file') { %>
@@ -43,7 +67,21 @@
             <% } else if (node.type === 'directory') { %>
               <a href="/explorer?parent=<%= node.node_id %>"><%= node.name %></a>
             <% } else if (node.type === 'symlink') { %>
-              <span class="symlink"><%= node.name %></span>
+              <% 
+                let target = null;
+                let broken = false;
+                if (node.contents && node.contents.length === 1) {
+                  target = nodes.find(n => n.node_id === node.contents[0]);
+                  broken = !target || target.owner !== user.username || node.contents[0] === node.node_id;
+                } else {
+                  broken = true;
+                }
+              %>
+              <% if (!broken) { %>
+                <a href="<%= target.type === 'file' ? ('/editor/' + target.node_id) : ('/explorer?parent=' + target.node_id) %>" class="symlink"><%= node.name %> <span title="Symlink">🔗</span></a>
+              <% } else { %>
+                <span class="symlink broken" title="Broken symlink">⚠ <%= node.name %></span>
+              <% } %>
             <% } %>
           </td>
           <td><%= node.type %></td>
@@ -55,7 +93,11 @@
             <% if (node.type === 'file') { %>
               <div class="file-preview" data-content="<%- node.text ? node.text.replace(/"/g, '&quot;') : '' %>"></div>
             <% } else if (node.type === 'symlink') { %>
-              <span class="symlink-preview">Symlink</span>
+              <% if (!broken && target && target.type === 'file') { %>
+                <div class="file-preview" data-content="<%- target.text ? target.text.replace(/"/g, '&quot;') : '' %>"></div>
+              <% } else { %>
+                <span class="symlink-preview broken">Broken</span>
+              <% } %>
             <% } %>
           </td>
           <td>
@@ -65,9 +107,26 @@
               <input type="text" name="new_name" placeholder="Rename">
               <button type="submit">Rename</button>
             </form>
-            <form action="/explorer/delete" method="post" style="display:inline">
+            <form action="/explorer/delete" method="post" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
               <input type="hidden" name="node_id" value="<%= node.node_id %>">
               <button type="submit">Delete</button>
+            </form>
+            <form action="/explorer/move" method="post" style="display:inline">
+              <input type="hidden" name="node_id" value="<%= node.node_id %>">
+              <input type="text" name="target_folder" placeholder="Target Folder ID">
+              <button type="submit">Move</button>
+            </form>
+            <% if (node.type === 'file') { %>
+              <form action="/explorer/tag" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="tags" placeholder="Add/Remove Tags (comma)">
+                <button type="submit">Update Tags</button>
+              </form>
+            <% } %>
+            <form action="/explorer/owner" method="post" style="display:inline">
+              <input type="hidden" name="node_id" value="<%= node.node_id %>">
+              <input type="text" name="new_owner" placeholder="New Owner">
+              <button type="submit">Change Owner</button>
             </form>
           </td>
         </tr>

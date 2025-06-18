@@ -9,7 +9,30 @@
 <body>
   <% include ./partials/navbar.ejs %>
   <h1>Editor</h1>
-  <p>Welcome, <%= user ? user.username : '' %>!</p>
-  <!-- Editor UI will go here -->
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <% if (node) { %>
+    <% if (success) { %><div class="success"><%= success %></div><% } %>
+    <form id="editor-form">
+      <input type="hidden" id="node-id" value="<%= node.node_id %>">
+      <div><strong>Filename:</strong> <%= node.name %></div>
+      <div><strong>Tags:</strong> <%= node.tags ? node.tags.join(', ') : '' %></div>
+      <div id="lock-status"><%= lock && lock.locked ? ('Locked by ' + lock.lockedBy) : 'Unlocked' %></div>
+      <textarea id="editor-textarea" rows="20" cols="80"><%= node.text || '' %></textarea>
+      <br>
+      <button type="button" id="save-btn">Save</button>
+    </form>
+    <form id="tags-form" method="post" action="/editor/<%= node.node_id %>/tags">
+      <label>Update Tags: <input type="text" name="tags" value="<%= node.tags ? node.tags.join(', ') : '' %>"></label>
+      <button type="submit">Update Tags</button>
+    </form>
+    <form id="rename-form" method="post" action="/editor/<%= node.node_id %>/rename">
+      <label>Rename: <input type="text" name="new_name" value="<%= node.name %>"></label>
+      <button type="submit">Rename</button>
+    </form>
+    <form id="delete-form" method="post" action="/editor/<%= node.node_id %>/delete" onsubmit="return confirm('Are you sure you want to delete this file?');">
+      <button type="submit" style="color:red">Delete File</button>
+    </form>
+  <% } %>
+  <script src="/js/editor.js"></script>
 </body>
 </html>

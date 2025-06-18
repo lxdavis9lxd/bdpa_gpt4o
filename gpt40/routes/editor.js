@@ -20,4 +20,7 @@ router.post('/:node_id/rename', editorController.renameFile);
 // POST /editor/:node_id/delete
 router.post('/:node_id/delete', editorController.deleteFile);
 
+// GET /editor/:node_id/lock-status
+router.get('/:node_id/lock-status', editorController.lockStatus);
+
 module.exports = router;
