@@ -22,10 +22,30 @@ exports.getExplorer = async (req, res) => {
   if (!user) return res.redirect('/login');
   const error = typeof req.query.error !== 'undefined' ? req.query.error : null;
   const parent = req.query.parent || null;
+  const q = req.query.q || '';
   try {
     const nodes = await fetchUserNodes(user.username, process.env.BDPA_API_KEY, req.query.sortBy);
     let currentFolder = null;
     let folderContents = [];
+    let searchResults = [];
+    if (q) {
+      // Search by name, tag, text, type, created/modified time
+      const qLower = q.toLowerCase();
+      searchResults = nodes.filter(n =>
+        (n.name && n.name.toLowerCase().includes(qLower)) ||
+        (n.tags && n.tags.some(tag => tag.toLowerCase().includes(qLower))) ||
+        (n.text && n.text.toLowerCase().includes(qLower)) ||
+        (n.type && n.type.toLowerCase().includes(qLower)) ||
+        (n.createdAt && new Date(n.createdAt).toLocaleString().includes(qLower)) ||
+        (n.modifiedAt && new Date(n.modifiedAt).toLocaleString().includes(qLower))
+      );
+      // Sort: files by modified desc, folders/symlinks by created desc
+      searchResults.sort((a, b) => {
+        if (a.type === 'file' && b.type === 'file') return b.modifiedAt - a.modifiedAt;
+        if (a.type !== 'file' && b.type !== 'file') return b.createdAt - a.createdAt;
+        return a.type === 'file' ? -1 : 1;
+      });
+    }
     if (parent) {
       currentFolder = nodes.find(n => n.node_id === parent && n.type === 'directory');
       if (currentFolder) {
@@ -42,10 +62,12 @@ exports.getExplorer = async (req, res) => {
       currentFolder,
       parent,
       sortBy: req.query.sortBy || 'name',
-      error
+      error,
+      q,
+      searchResults
     });
   } catch (err) {
-    res.render('explorer', { user, nodes: [], folderContents: [], currentFolder: null, parent, sortBy: req.query.sortBy || 'name', error: error || 'Failed to load files.' });
+    res.render('explorer', { user, nodes: [], folderContents: [], currentFolder: null, parent, sortBy: req.query.sortBy || 'name', error: error || 'Failed to load files.', q, searchResults: [] });
   }
 };
 

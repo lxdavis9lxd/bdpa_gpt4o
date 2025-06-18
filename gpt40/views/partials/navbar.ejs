@@ -3,6 +3,14 @@
     <img src="/images/bdpa-logo.png" alt="BDPA Logo" class="navbar-logo">
     <span class="navbar-title">BDPADrive</span>
   </div>
+  <div class="navbar-center">
+    <% if (user) { %>
+      <form action="/explorer" method="get" class="navbar-search">
+        <input type="text" name="q" placeholder="Search files, folders, tags..." value="<%= typeof q !== 'undefined' ? q : '' %>">
+        <button type="submit">Search</button>
+      </form>
+    <% } %>
+  </div>
   <div class="navbar-right">
     <% if (user) { %>
       <span class="navbar-user">Hello, <a href="/dashboard"><%= user.username %></a></span>

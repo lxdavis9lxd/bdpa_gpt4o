@@ -12,14 +12,20 @@
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <% if (node) { %>
     <% if (success) { %><div class="success"><%= success %></div><% } %>
-    <form id="editor-form">
-      <input type="hidden" id="node-id" value="<%= node.node_id %>">
-      <div><strong>Filename:</strong> <%= node.name %></div>
-      <div><strong>Tags:</strong> <%= node.tags ? node.tags.join(', ') : '' %></div>
-      <div id="lock-status"><%= lock && lock.locked ? ('Locked by ' + lock.lockedBy) : 'Unlocked' %></div>
-      <textarea id="editor-textarea" rows="20" cols="80"><%= node.text || '' %></textarea>
-      <br>
-      <button type="button" id="save-btn">Save</button>
+    <form id="editor-form" style="display:flex; gap:2em; align-items:flex-start;">
+      <div style="flex:1;">
+        <input type="hidden" id="node-id" value="<%= node.node_id %>">
+        <div><strong>Filename:</strong> <%= node.name %></div>
+        <div><strong>Tags:</strong> <%= node.tags ? node.tags.join(', ') : '' %></div>
+        <div id="lock-status"><%= lock && lock.locked ? ('Locked by ' + lock.lockedBy) : 'Unlocked' %></div>
+        <textarea id="editor-textarea" rows="20" cols="60"><%= node.text || '' %></textarea>
+        <br>
+        <button type="button" id="save-btn">Save</button>
+      </div>
+      <div style="flex:1;">
+        <h3>Live Preview</h3>
+        <div id="live-preview" style="border:1px solid #ccc; min-height:300px; background:#fff; padding:1em;"></div>
+      </div>
     </form>
     <form id="tags-form" method="post" action="/editor/<%= node.node_id %>/tags">
       <label>Update Tags: <input type="text" name="tags" value="<%= node.tags ? node.tags.join(', ') : '' %>"></label>
@@ -34,5 +40,16 @@
     </form>
   <% } %>
   <script src="/js/editor.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    // Live preview logic
+    const textarea = document.getElementById('editor-textarea');
+    const preview = document.getElementById('live-preview');
+    function updatePreview() {
+      preview.innerHTML = window.marked.parse(textarea.value);
+    }
+    textarea.addEventListener('input', updatePreview);
+    updatePreview();
+  </script>
 </body>
 </html>

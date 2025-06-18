@@ -22,5 +22,9 @@ router.post('/:node_id/delete', editorController.deleteFile);
 
 // GET /editor/:node_id/lock-status
 router.get('/:node_id/lock-status', editorController.lockStatus);
+// POST /editor/:node_id/lock
+router.post('/:node_id/lock', editorController.setLock);
+// DELETE /editor/:node_id/lock
+router.delete('/:node_id/lock', editorController.releaseLock);
 
 module.exports = router;

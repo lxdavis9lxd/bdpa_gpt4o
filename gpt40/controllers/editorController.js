@@ -8,6 +8,13 @@ async function fetchNodeById(username, apiKey, node_id) {
   return res.data.node;
 }
 
+// Helper to update node lock
+async function updateNodeLock(username, apiKey, node_id, lock) {
+  const url = `https://drive.api.hscc.bdpa.org/v1/filesystem/${username}/node/${node_id}`;
+  const headers = { Authorization: `bearer ${apiKey}` };
+  await axios.patch(url, { lock }, { headers });
+}
+
 // Helper to check lock status (mock, as API may not support locks)
 async function getLockStatus(node_id) {
   // TODO: Replace with real API call if available
@@ -24,7 +31,9 @@ exports.getEditor = async (req, res) => {
   try {
     node = await fetchNodeById(user.username, process.env.BDPA_API_KEY, node_id);
     if (node.type !== 'file') throw new Error('Not a file node');
-    lock = await getLockStatus(node_id);
+    if (node.lock && node.lock.user && node.lock.client && Date.now() - node.lock.createdAt < 2 * 60 * 1000) {
+      lock = { locked: true, lockedBy: node.lock.user, clientId: node.lock.client };
+    }
   } catch (err) {
     error = err.message || 'Failed to load file.';
   }
@@ -92,8 +101,50 @@ exports.deleteFile = async (req, res) => {
   }
 };
 
-// Lock status endpoint for polling (mock)
+// GET lock status
 exports.lockStatus = async (req, res) => {
-  // TODO: Replace with real API call if available
-  res.json({ locked: false, lockedBy: null });
+  const user = req.session.user;
+  const node_id = req.params.node_id;
+  try {
+    const node = await fetchNodeById(user.username, process.env.BDPA_API_KEY, node_id);
+    const lock = node.lock || null;
+    let locked = false, lockedBy = null, clientId = null;
+    if (lock && lock.user && lock.client) {
+      // Lock is valid if not stale (2 min)
+      if (Date.now() - lock.createdAt < 2 * 60 * 1000) {
+        locked = true;
+        lockedBy = lock.user;
+        clientId = lock.client;
+      }
+    }
+    res.json({ locked, lockedBy, clientId });
+  } catch {
+    res.json({ locked: false });
+  }
+};
+
+// POST set lock
+exports.setLock = async (req, res) => {
+  const user = req.session.user;
+  const node_id = req.params.node_id;
+  const { clientId } = req.body;
+  try {
+    const lock = { user: user.username, client: clientId, createdAt: Date.now() };
+    await updateNodeLock(user.username, process.env.BDPA_API_KEY, node_id, lock);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false });
+  }
+};
+
+// DELETE release lock
+exports.releaseLock = async (req, res) => {
+  const user = req.session.user;
+  const node_id = req.params.node_id;
+  try {
+    await updateNodeLock(user.username, process.env.BDPA_API_KEY, node_id, null);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false });
+  }
 };

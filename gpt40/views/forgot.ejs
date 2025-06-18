@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BDPADrive - Password Recovery</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <% include('partials/navbar.ejs') %>
+  <h1>Password Recovery</h1>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="error"><%= error %></div>
+  <% } %>
+  <% if (typeof info !== 'undefined' && info) { %>
+    <div class="info"><%= info %></div>
+  <% } %>
+  <form action="/forgot" method="POST">
+    <input type="email" name="email" placeholder="Enter your email address" required>
+    <button type="submit">Send Recovery Email</button>
+  </form>
+</body>
+</html>

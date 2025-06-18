@@ -7,6 +7,13 @@ window.addEventListener('DOMContentLoaded', () => {
   let lastSaved = textarea.value;
   let autoSaveTimer = null;
 
+  // Generate or get client ID for this tab
+  let clientId = localStorage.getItem('bdpa_client_id');
+  if (!clientId) {
+    clientId = 'client-' + Math.random().toString(36).slice(2) + '-' + Date.now();
+    localStorage.setItem('bdpa_client_id', clientId);
+  }
+
   function setLockStatus(locked, by) {
     if (locked) {
       lockStatus.textContent = `Locked by ${by}`;
@@ -29,7 +36,37 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Set lock when editor loads
+  async function setLock() {
+    await fetch(`/editor/${nodeId}/lock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId })
+    });
+  }
+
+  // Release lock on unload
+  async function releaseLock() {
+    await fetch(`/editor/${nodeId}/lock`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId })
+    });
+  }
+
+  window.addEventListener('beforeunload', releaseLock);
+  setLock();
+
   async function autoSave() {
+    // Check lock before saving
+    const lockRes = await fetch(`/editor/${nodeId}/lock-status`);
+    const lockData = await lockRes.json();
+    if (lockData.locked && lockData.clientId !== clientId) {
+      if (!confirm('Another user or tab is editing this file. Overwrite their changes?')) {
+        saveBtn.textContent = 'Save cancelled';
+        return;
+      }
+    }
     if (textarea.value !== lastSaved) {
       saveBtn.textContent = 'Saving...';
       saveBtn.disabled = true;

@@ -12,12 +12,31 @@
   <% if (typeof error !== 'undefined' && error) { %>
     <div class="error"><%= error %></div>
   <% } %>
-  <form action="/register" method="POST">
-    <input type="text" name="username" placeholder="Username" required>
+  <form action="/register" method="POST" id="register-form">
+    <input type="text" name="username" placeholder="Username" pattern="^[a-zA-Z0-9_-]+$" title="Alphanumeric, dashes, underscores only" required>
     <input type="email" name="email" placeholder="Email" required>
-    <input type="password" name="password" placeholder="Password" required>
+    <input type="password" name="password" id="password" placeholder="Password" required>
+    <div id="password-strength"></div>
+    <label>What is 2+2? <input type="text" name="captcha" required></label>
     <button type="submit">Register</button>
   </form>
   <p>Already have an account? <a href="/login">Login here</a></p>
+  <script>
+    // Password strength indicator
+    const password = document.getElementById('password');
+    const strength = document.getElementById('password-strength');
+    password.addEventListener('input', function() {
+      if (password.value.length <= 10) {
+        strength.textContent = 'Weak password';
+        strength.style.color = 'red';
+      } else if (password.value.length <= 17) {
+        strength.textContent = 'Moderate password';
+        strength.style.color = 'orange';
+      } else {
+        strength.textContent = 'Strong password';
+        strength.style.color = 'green';
+      }
+    });
+  </script>
 </body>
 </html>

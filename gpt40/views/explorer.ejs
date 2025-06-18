@@ -45,94 +45,175 @@
       <input type="hidden" name="parent" value="<%= parent %>">
     <% } %>
   </form>
-  <table class="explorer-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Owner</th>
-        <th>Created</th>
-        <th>Modified</th>
-        <th>Size</th>
-        <th>Preview</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% (folderContents || nodes).forEach(node => { %>
+  <% if (q && searchResults && searchResults.length) { %>
+    <h2>Search Results for "<%= q %>"</h2>
+    <table class="explorer-table">
+      <thead>
         <tr>
-          <td>
-            <% if (node.type === 'file') { %>
-              <a href="/editor/<%= node.node_id %>"><%= node.name %></a>
-            <% } else if (node.type === 'directory') { %>
-              <a href="/explorer?parent=<%= node.node_id %>"><%= node.name %></a>
-            <% } else if (node.type === 'symlink') { %>
-              <% 
-                let target = null;
-                let broken = false;
-                if (node.contents && node.contents.length === 1) {
-                  target = nodes.find(n => n.node_id === node.contents[0]);
-                  broken = !target || target.owner !== user.username || node.contents[0] === node.node_id;
-                } else {
-                  broken = true;
-                }
-              %>
-              <% if (!broken) { %>
-                <a href="<%= target.type === 'file' ? ('/editor/' + target.node_id) : ('/explorer?parent=' + target.node_id) %>" class="symlink"><%= node.name %> <span title="Symlink">🔗</span></a>
-              <% } else { %>
-                <span class="symlink broken" title="Broken symlink">⚠ <%= node.name %></span>
-              <% } %>
-            <% } %>
-          </td>
-          <td><%= node.type %></td>
-          <td><%= node.owner %></td>
-          <td><%= new Date(node.createdAt).toLocaleString() %></td>
-          <td><%= new Date(node.modifiedAt).toLocaleString() %></td>
-          <td><%= node.size || '' %></td>
-          <td>
-            <% if (node.type === 'file') { %>
-              <div class="file-preview" data-content="<%- node.text ? node.text.replace(/"/g, '&quot;') : '' %>"></div>
-            <% } else if (node.type === 'symlink') { %>
-              <% if (!broken && target && target.type === 'file') { %>
-                <div class="file-preview" data-content="<%- target.text ? target.text.replace(/"/g, '&quot;') : '' %>"></div>
-              <% } else { %>
-                <span class="symlink-preview broken">Broken</span>
-              <% } %>
-            <% } %>
-          </td>
-          <td>
-            <!-- Actions: Rename, Delete, Move, Tag, Change Owner, etc. -->
-            <form action="/explorer/rename" method="post" style="display:inline">
-              <input type="hidden" name="node_id" value="<%= node.node_id %>">
-              <input type="text" name="new_name" placeholder="Rename">
-              <button type="submit">Rename</button>
-            </form>
-            <form action="/explorer/delete" method="post" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
-              <input type="hidden" name="node_id" value="<%= node.node_id %>">
-              <button type="submit">Delete</button>
-            </form>
-            <form action="/explorer/move" method="post" style="display:inline">
-              <input type="hidden" name="node_id" value="<%= node.node_id %>">
-              <input type="text" name="target_folder" placeholder="Target Folder ID">
-              <button type="submit">Move</button>
-            </form>
-            <% if (node.type === 'file') { %>
-              <form action="/explorer/tag" method="post" style="display:inline">
-                <input type="hidden" name="node_id" value="<%= node.node_id %>">
-                <input type="text" name="tags" placeholder="Add/Remove Tags (comma)">
-                <button type="submit">Update Tags</button>
-              </form>
-            <% } %>
-            <form action="/explorer/owner" method="post" style="display:inline">
-              <input type="hidden" name="node_id" value="<%= node.node_id %>">
-              <input type="text" name="new_owner" placeholder="New Owner">
-              <button type="submit">Change Owner</button>
-            </form>
-          </td>
+          <th>Name</th><th>Type</th><th>Owner</th><th>Created</th><th>Modified</th><th>Size</th><th>Preview</th><th>Actions</th>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% searchResults.forEach(node => { %>
+          <tr>
+            <td>
+              <% if (node.type === 'file') { %>
+                <a href="/editor/<%= node.node_id %>"><%= node.name %></a>
+              <% } else if (node.type === 'directory') { %>
+                <a href="/explorer?parent=<%= node.node_id %>"><%= node.name %></a>
+              <% } else if (node.type === 'symlink') { %>
+                <% let target = null; let broken = false;
+                  if (node.contents && node.contents.length === 1) {
+                    target = nodes.find(n => n.node_id === node.contents[0]);
+                    broken = !target || target.owner !== user.username || node.contents[0] === node.node_id;
+                  } else { broken = true; }
+                %>
+                <% if (!broken) { %>
+                  <a href="<%= target.type === 'file' ? ('/editor/' + target.node_id) : ('/explorer?parent=' + target.node_id) %>" class="symlink"><%= node.name %> <span title="Symlink">🔗</span></a>
+                <% } else { %>
+                  <span class="symlink broken" title="Broken symlink">⚠ <%= node.name %></span>
+                <% } %>
+              <% } %>
+            </td>
+            <td><%= node.type %></td>
+            <td><%= node.owner %></td>
+            <td><%= new Date(node.createdAt).toLocaleString() %></td>
+            <td><%= new Date(node.modifiedAt).toLocaleString() %></td>
+            <td><%= node.size || '' %></td>
+            <td>
+              <% if (node.type === 'file') { %>
+                <div class="file-preview" data-content="<%- node.text ? node.text.replace(/"/g, '&quot;') : '' %>"></div>
+              <% } else if (node.type === 'symlink') { %>
+                <% if (!broken && target && target.type === 'file') { %>
+                  <div class="file-preview" data-content="<%- target.text ? target.text.replace(/"/g, '&quot;') : '' %>"></div>
+                <% } else { %>
+                  <span class="symlink-preview broken">Broken</span>
+                <% } %>
+              <% } %>
+            </td>
+            <td>
+              <!-- Actions: Rename, Delete, Move, Tag, Change Owner, etc. -->
+              <form action="/explorer/rename" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="new_name" placeholder="Rename">
+                <button type="submit">Rename</button>
+              </form>
+              <form action="/explorer/delete" method="post" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <button type="submit">Delete</button>
+              </form>
+              <form action="/explorer/move" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="target_folder" placeholder="Target Folder ID">
+                <button type="submit">Move</button>
+              </form>
+              <% if (node.type === 'file') { %>
+                <form action="/explorer/tag" method="post" style="display:inline">
+                  <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                  <input type="text" name="tags" placeholder="Add/Remove Tags (comma)">
+                  <button type="submit">Update Tags</button>
+                </form>
+              <% } %>
+              <form action="/explorer/owner" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="new_owner" placeholder="New Owner">
+                <button type="submit">Change Owner</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <table class="explorer-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Owner</th>
+          <th>Created</th>
+          <th>Modified</th>
+          <th>Size</th>
+          <th>Preview</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% (folderContents || nodes).forEach(node => { %>
+          <tr>
+            <td>
+              <% if (node.type === 'file') { %>
+                <a href="/editor/<%= node.node_id %>"><%= node.name %></a>
+              <% } else if (node.type === 'directory') { %>
+                <a href="/explorer?parent=<%= node.node_id %>"><%= node.name %></a>
+              <% } else if (node.type === 'symlink') { %>
+                <% 
+                  let target = null;
+                  let broken = false;
+                  if (node.contents && node.contents.length === 1) {
+                    target = nodes.find(n => n.node_id === node.contents[0]);
+                    broken = !target || target.owner !== user.username || node.contents[0] === node.node_id;
+                  } else {
+                    broken = true;
+                  }
+                %>
+                <% if (!broken) { %>
+                  <a href="<%= target.type === 'file' ? ('/editor/' + target.node_id) : ('/explorer?parent=' + target.node_id) %>" class="symlink"><%= node.name %> <span title="Symlink">🔗</span></a>
+                <% } else { %>
+                  <span class="symlink broken" title="Broken symlink">⚠ <%= node.name %></span>
+                <% } %>
+              <% } %>
+            </td>
+            <td><%= node.type %></td>
+            <td><%= node.owner %></td>
+            <td><%= new Date(node.createdAt).toLocaleString() %></td>
+            <td><%= new Date(node.modifiedAt).toLocaleString() %></td>
+            <td><%= node.size || '' %></td>
+            <td>
+              <% if (node.type === 'file') { %>
+                <div class="file-preview" data-content="<%- node.text ? node.text.replace(/"/g, '&quot;') : '' %>"></div>
+              <% } else if (node.type === 'symlink') { %>
+                <% if (!broken && target && target.type === 'file') { %>
+                  <div class="file-preview" data-content="<%- target.text ? target.text.replace(/"/g, '&quot;') : '' %>"></div>
+                <% } else { %>
+                  <span class="symlink-preview broken">Broken</span>
+                <% } %>
+              <% } %>
+            </td>
+            <td>
+              <!-- Actions: Rename, Delete, Move, Tag, Change Owner, etc. -->
+              <form action="/explorer/rename" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="new_name" placeholder="Rename">
+                <button type="submit">Rename</button>
+              </form>
+              <form action="/explorer/delete" method="post" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <button type="submit">Delete</button>
+              </form>
+              <form action="/explorer/move" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="target_folder" placeholder="Target Folder ID">
+                <button type="submit">Move</button>
+              </form>
+              <% if (node.type === 'file') { %>
+                <form action="/explorer/tag" method="post" style="display:inline">
+                  <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                  <input type="text" name="tags" placeholder="Add/Remove Tags (comma)">
+                  <button type="submit">Update Tags</button>
+                </form>
+              <% } %>
+              <form action="/explorer/owner" method="post" style="display:inline">
+                <input type="hidden" name="node_id" value="<%= node.node_id %>">
+                <input type="text" name="new_owner" placeholder="New Owner">
+                <button type="submit">Change Owner</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
   <h2>Create New</h2>
   <form action="/explorer/create" method="post" class="create-form">
     <label>Type:
