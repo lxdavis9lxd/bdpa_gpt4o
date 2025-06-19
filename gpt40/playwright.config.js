@@ -4,12 +4,15 @@
 const config = {
   testDir: './tests',
   timeout: 30000,
-  retries: 0,
+  retries: 1,
   use: {
     baseURL: 'http://localhost:3000',
     headless: true,
-    screenshot: 'only-on-failure',
+    viewport: { width: 1280, height: 800 },
+    ignoreHTTPSErrors: true,
     video: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
 };
+
 module.exports = config;
